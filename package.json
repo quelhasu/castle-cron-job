@@ -1,0 +1,23 @@
+{
+  "name": "castle-cron-job",
+  "version": "1.0.0",
+  "description": "",
+  "main": "hello.js",
+  "scripts": {
+    "start": "node hello.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "agenda": "^2.0.2",
+    "agendash": "^0.4.0",
+    "mongodb": "^3.1.13",
+    "date-and-time": "^0.6.3",
+    "firebase": "^5.8.0",
+    "jquery": "^3.3.1",
+    "jsdom": "^13.1.0",
+    "puppeteer": "^1.11.0"
+  }
+}
