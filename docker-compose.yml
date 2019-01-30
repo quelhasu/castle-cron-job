@@ -1,0 +1,27 @@
+version: "2"
+services:
+  app:
+    container_name: app
+    restart: always
+    build: .
+    ports:
+      - "4000:4000"
+    links:
+      - mongo
+  agendash:
+    container_name: agendash
+    image: agendash
+    environment:
+      - DB_NAME=agenda
+      - DB_HOST=mongo
+    ports:
+      - "3022:3022"
+    depends_on:
+      - mongo
+    links:
+      - mongo
+  mongo:
+    container_name: mongo
+    image: mongo
+    ports:
+      - "27017:27017"
