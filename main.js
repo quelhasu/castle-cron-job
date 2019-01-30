@@ -32,7 +32,7 @@ agenda.define('update database france', (job, done) => {
   await agenda.start();
   await agenda.every('7 days', 'update database france');
   await agenda.on('success:update database france', job => {
-    console.log(`Sent Email Successfully`);
+    console.log(`Update france DONE`);
   });
 })();
 

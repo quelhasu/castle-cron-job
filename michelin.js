@@ -4,7 +4,7 @@ const url_query = "https://restaurant.michelin.fr/index.php?q=search/autocomplet
 const url_michelin = "https://restaurant.michelin.fr";
 
 Michelin.prototype.getRestaurantDetails = async function(name, page) {
-  var restaurant_name = name.replace(/(\w'|[^a-z ])/gi, "").toLowerCase();
+  var restaurant_name = name.replace(/(^\w')/gi, "").toLowerCase();
   var encoded_restaurant = encodeURI(restaurant_name);
   var restaurant = {};
 
@@ -15,6 +15,8 @@ Michelin.prototype.getRestaurantDetails = async function(name, page) {
     if (typeof result != "undefined") {
       var href = result.match(/href="(.+?)">/i)[1];
       var restaurant_name_website = "null";
+      console.log("\t[#] restaurant " + url_michelin + href);
+      restaurant.michelin_url = url_michelin + href;
 
       await page.goto(url_michelin + href, { waitUntil: "load", timeout: 0 });
 
@@ -32,6 +34,7 @@ Michelin.prototype.getRestaurantDetails = async function(name, page) {
 
         restaurant.location = await page.evaluate(
           (selector1, selector2) => {
+            if(!document.querySelector(selector1)||!document.querySelector(selector2)) return "none";
             return {
               street: document.querySelector(selector1).innerText,
               postal: document.querySelector(selector2).innerText

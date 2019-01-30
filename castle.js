@@ -2,6 +2,7 @@ const url = "https://www.relaischateaux.com/us/destinations/";
 const puppeteer = require("puppeteer");
 const firebase = require("firebase");
 const michelin = require("./michelin").Michelin;
+const crypto = require('crypto');
 
 var Castle = function() {};
 
@@ -122,11 +123,14 @@ Castle.prototype.getHotels = function(destination, db) {
             "#restaurant-informations > div.col-1-3 > p[itemprop*='priceRange']"
           );
 
+          hotel.id = await ID(hotel.name, destination);
+
           hotel.restaurant.link = restaurant_link;
           await michelin.getRestaurantDetails(hotel.restaurant.name, page).then(response => {
-            if (Object.entries(response).length != 0) {
+            if (Object.entries(response).length != 0 && response.stars != null) {
               hotel.location = response.location;
               hotel.restaurant.michelin_rating = response.stars;
+              hotel.restaurant.michelin_url = response.michelin_url;
               saveToFirebase(hotel, db, destination);
             }
           });
@@ -157,6 +161,11 @@ let saveToFirebase = (hotel, db, destination) => {
         console.log("exists!", snap.val());
       }
     });
+};
+
+let ID = async (name, destination) => {
+  const id = crypto.createHmac('sha256', destination).update(name).digest('hex');
+  return id.substr(2,9);
 };
 
 exports.Castle = new Castle();
