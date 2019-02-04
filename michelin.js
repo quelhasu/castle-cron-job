@@ -34,7 +34,8 @@ Michelin.prototype.getRestaurantDetails = async function(name, page) {
 
         restaurant.location = await page.evaluate(
           (selector1, selector2) => {
-            if(!document.querySelector(selector1)||!document.querySelector(selector2)) return "none";
+            var street = !document.querySelector(selector1) ? document.querySelector(selector1).innerText : "none";
+            var postal = !document.querySelector(selector2) ? document.querySelector(selector2).innerText : "none";
             return {
               street: document.querySelector(selector1).innerText,
               postal: document.querySelector(selector2).innerText

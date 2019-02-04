@@ -5,7 +5,7 @@ services:
     restart: always
     build: .
     ports:
-      - "4000:4000"
+      - "4001:4001"
     links:
       - mongo
   agendash:

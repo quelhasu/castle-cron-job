@@ -11,4 +11,4 @@ RUN echo @v3.8 http://nl.alpinelinux.org/alpine/v3.8/community >> /etc/apk/repos
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 COPY . /app
 CMD node main.js
-EXPOSE 4000
+EXPOSE 4001

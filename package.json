@@ -10,14 +10,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.18.0",
     "agenda": "^2.0.2",
     "agendash": "^0.4.0",
-    "mongodb": "^3.1.13",
+    "axios": "^0.18.0",
+    "crypto": "^1.0.1",
     "date-and-time": "^0.6.3",
     "firebase": "^5.8.0",
     "jquery": "^3.3.1",
     "jsdom": "^13.1.0",
-    "puppeteer": "^1.11.0"
+    "mongodb": "^3.1.13",
+    "puppeteer": "^1.11.0",
+    "seedrandom": "^2.4.4"
   }
 }
