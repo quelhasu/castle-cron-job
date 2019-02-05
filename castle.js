@@ -82,6 +82,11 @@ Castle.prototype.getHotels = function(destination, db) {
             "#tabProperty > div > div.row.propertyDesc > div.col-2-3 > div > div.col-1-2.propertyInfo > div.propertyInfo__ratings > div.qualitelis > div.qualitelis-reviews > div > strong"
           );
 
+          // Get hotel image media
+          hotel.media = await page.evaluate(selector => {
+            return document.querySelector(selector).src
+          }, "body > div.hotelHeader > div.innerHotelHeader > figure > picture > img");
+
           // Get hotel name
           hotel.name = await page.evaluate(selector => {
             return document.querySelector(selector).innerText;
