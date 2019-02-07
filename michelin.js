@@ -28,7 +28,7 @@ Michelin.prototype.getRestaurantDetails = async function(name, page) {
       if (restaurant_name === restaurant_name_website.toLowerCase()) {
         restaurant.stars = await page.evaluate(selector => {
           var stars = document.querySelector(selector);
-          if (!stars || !stars.innerText.includes("MICHELIN")) return null;
+          if (!stars || !stars.innerText.includes("MICHELIN :")) return null;
           else return stars.innerText.match(/\d/i)[0];
         }, "#node_poi-guide-wrapper > div.node_poi-distinction-section > ul > li > div.content-wrapper");
 
