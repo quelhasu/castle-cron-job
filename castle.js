@@ -84,7 +84,8 @@ Castle.prototype.getHotels = function(destination, db) {
 
           // Get hotel image media
           hotel.media = await page.evaluate(selector => {
-            return document.querySelector(selector).src
+            const media = document.querySelector(selector) ? document.querySelector(selector).src : null;
+            return media
           }, "body > div.hotelHeader > div.innerHotelHeader > figure > picture > img");
 
           // Get hotel name
