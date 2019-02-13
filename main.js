@@ -4,9 +4,9 @@ const Agenda = require('agenda');
 const date = require("date-and-time");
 const serviceAccount = require("./serviceAccountKey.json");
 
-const mongoConnectionString = 'mongodb://mongo/agenda';
+// const mongoConnectionString = 'mongodb://mongo/agenda';
 
-let agenda = new Agenda({db: {address: mongoConnectionString}});
+// let agenda = new Agenda({db: {addremeidss: mongoConnectionString}});
 
 if(!firebase.apps.length) {
   let config = serviceAccount;
@@ -16,25 +16,25 @@ firebase.initializeApp(config);
 const db = firebase.database();
 
 
-agenda.define('update database france', (job, done) => {
-  console.log("start update france hotels");
-  let now = new Date();
-  job.attrs.data = {
-    "update-date" : date.format(now, 'ddd MMM DD YYYY HH:mm:ss')
-  }
+// agenda.define('update database france', (job, done) => {
+//   console.log("start update france hotels");
+//   let now = new Date();
+//   job.attrs.data = {
+//     "update-date" : date.format(now, 'ddd MMM DD YYYY HH:mm:ss')
+//   }
   deleteHotels("france");
   castle.getHotels("france", db);
-  done();
-});
+//   done();
+// });
 
 
-(async function() {
-  await agenda.start();
-  await agenda.every('7 days', 'update database france');
-  await agenda.on('success:update database france', job => {
-    console.log(`Update france DONE`);
-  });
-})();
+// (async function() {
+//   await agenda.start();
+//   await agenda.every('7 days', 'update database france');
+//   await agenda.on('success:update database france', job => {
+//     console.log(`Update france DONE`);
+//   });
+// })();
 
 
 function deleteHotels(destination){

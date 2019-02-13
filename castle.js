@@ -2,7 +2,7 @@ const url = "https://www.relaischateaux.com/us/destinations/";
 const puppeteer = require("puppeteer");
 const firebase = require("firebase");
 const michelin = require("./michelin").Michelin;
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 var Castle = function() {};
 
@@ -37,18 +37,18 @@ Castle.prototype.getHotels = function(destination, db) {
         headless: true,
         timeout: 0,
         executablePath: process.env.CHROME_BIN || undefined,
-        args: ['--no-sandbox', '--headless', '--disable-gpu'],
+        args: ["--no-sandbox", "--headless", "--disable-gpu"]
       });
-      const page = await browser.newPage();
 
       // Get hotels of the 5th first pages
-      for (let index = 1; index < 5; index++) {
+      for (let index = 1; index < 20; index++) {
+        const pageLinks = await browser.newPage();
         console.log("[#] Getting links... from " + hotel_url + "?page=" + index);
-        await page.goto(hotel_url + "?page=" + index, { waitUntil: "load", timeout: 0 });
-        await page.waitForSelector(".hotelQuickView");
+        await pageLinks.goto(hotel_url + "?page=" + index, { waitUntil: "load", timeout: 0 });
+        await pageLinks.waitForSelector(".hotelQuickView");
 
         // Get hotels links only w/ restaurants
-        const hotels_links = await page.evaluate(selector => {
+        const hotels_links = await pageLinks.evaluate(selector => {
           const hotel_quick_view_list = document.querySelectorAll(selector);
           var hotel_quick_view = [...hotel_quick_view_list];
           hotel_quick_view = hotel_quick_view.filter(hotel => hotel.innerText.includes("Hotel + Resta"));
@@ -57,15 +57,18 @@ Castle.prototype.getHotels = function(destination, db) {
 
         console.log("[#] Done getting links\n");
 
-        hotel_url = page.url().match(/.*\/[^?]+/);
+        hotel_url = pageLinks.url().match(/.*\/[^?]+/);
 
         // Iterate through hotels of current page
         for (let i = 0; i < hotels_links.length; i++) {
+          const page = await browser.newPage();
           var hotel = {};
           let link = hotels_links[i];
           console.log("\n\t[#] Trying link " + link.match(/france\/.*/));
 
           await page.goto(link, { waitUntil: "load", timeout: 0 });
+
+          await page.waitForSelector("#tabProperty > div > div.row.hotelTabsHeader > div > div.hotelTabsHeaderTitle > h3");
 
           hotel.link = link;
 
@@ -85,7 +88,7 @@ Castle.prototype.getHotels = function(destination, db) {
           // Get hotel image media
           hotel.media = await page.evaluate(selector => {
             const media = document.querySelector(selector) ? document.querySelector(selector).src : null;
-            return media
+            return media;
           }, "body > div.hotelHeader > div.innerHotelHeader > figure > picture > img");
 
           // Get hotel name
@@ -111,38 +114,49 @@ Castle.prototype.getHotels = function(destination, db) {
             return services.map(element => element.innerText);
           }, "#tabProperty > div > div.row.propertyDesc > div.row > div.col-2-3.propertyHotelActivity > div > ul > li");
 
+          // Get hotel details
+          const details_link = await page.evaluate(selector => {
+            return document.querySelector(selector).href;
+          }, "body > div.jsSecondNav.will-stick > ul > li> a[data-id*='isGoodToKnow']");
+
           // Get restaurant link
           const restaurant_link = await page.evaluate(selector => {
             return document.querySelector(selector).href;
           }, "body > div.jsSecondNav.will-stick > ul > li > a[data-id*='isRestaurant']");
-          await page.goto(restaurant_link, { waitUntil: "load", timeout: 0 });
 
-          //Get restaurant name / services
-          hotel.restaurant = await page.evaluate(
-            (selector1, selector2) => {
-              return {
-                name: document.querySelector(selector1).innerText,
-                services: document.querySelector(selector2).innerText
-              };
-            },
-            "[id*='Restaurant'] > div > div.row.hotelTabsHeader > div:nth-child(1) > div.hotelTabsHeaderTitle > h3",
-            "#restaurant-informations > div.col-1-3 > p[itemprop*='priceRange']"
-          );
+          await page.goto(details_link, { waitUntil: "networkidle2", timeout: 0 });
 
-          hotel.id = await ID(hotel.name, destination);
+          if (hotel.location = await getHotelLocation(page)) {
+            await page.goto(restaurant_link, { waitUntil: "networkidle2", timeout: 0 });
+            await page.waitForSelector("[id*='Restaurant'] > div > div.row.hotelTabsHeader > div:nth-child(1) > div.hotelTabsHeaderTitle > h3");
 
-          hotel.restaurant.link = restaurant_link;
-          await michelin.getRestaurantDetails(hotel.restaurant.name, page).then(response => {
-            if (Object.entries(response).length != 0 && response.stars != null) {
-              hotel.location = response.location;
-              hotel.restaurant.michelin_rating = response.stars;
-              hotel.restaurant.michelin_url = response.michelin_url;
-              saveToFirebase(hotel, db, destination);
-            }
-          });
+            //Get restaurant name / services
+            hotel.restaurant = await page.evaluate(
+              (selector1, selector2) => {
+                return {
+                  name: document.querySelector(selector1).innerText,
+                  services: document.querySelector(selector2).innerText
+                };
+              },
+              "[id*='Restaurant'] > div > div.row.hotelTabsHeader > div:nth-child(1) > div.hotelTabsHeaderTitle > h3",
+              "#restaurant-informations > div.col-1-3 > p[itemprop*='priceRange']"
+            );
+
+            hotel.id = await ID(hotel.name, destination);
+
+            hotel.restaurant.link = restaurant_link;
+            await michelin.getRestaurantDetails(hotel.restaurant.name, page).then(response => {
+              if (Object.entries(response).length != 0 && response.stars != null) {
+                hotel.restaurant.michelin_rating = response.stars;
+                hotel.restaurant.michelin_url = response.michelin_url;
+                saveToFirebase(hotel, db, destination);
+              }
+            });
+          }
+          await page.close();
         }
+        await pageLinks.close();
       }
-      await page.close();
       await browser.close();
       console.log("----end----");
       db.goOffline();
@@ -170,8 +184,53 @@ let saveToFirebase = (hotel, db, destination) => {
 };
 
 let ID = async (name, destination) => {
-  const id = crypto.createHmac('sha256', destination).update(name).digest('hex');
-  return id.substr(2,9);
+  const id = crypto
+    .createHmac("sha256", destination)
+    .update(name)
+    .digest("hex");
+  return id.substr(2, 9);
+};
+
+let getHotelLocation = async page => {
+  await page.waitForSelector("#tabGoodToKnow");
+  const position = await page.evaluate(selector => {
+    var position = document.querySelector(selector) ? document.querySelector(selector).src : null;
+    if (position) {
+      position = position.match(/center=(.*)&zoom/)[1];
+      return {
+        Lat: position.split(",")[0],
+        Lng: position.split(",")[1]
+      };
+    } else return null;
+  }, "#tabGoodToKnow > div > div > div.col-1-3.rightProperty > div.propertyStaticMap > div > img");
+
+  if (!position) return null;
+
+  const address = await page.evaluate(
+    (stAddressSelect, postalSelect, localitySelect, countrySelect) => {
+      var streetAddress = document.querySelector(stAddressSelect)
+        ? document.querySelector(stAddressSelect).innerText
+        : null;
+      var postalCode = document.querySelector(postalSelect).innerText;
+      var locality = document.querySelector(localitySelect).innerText;
+      var country = document.querySelector(countrySelect).innerText;
+      return {
+        streetAddress: streetAddress,
+        postalCode: postalCode,
+        localityAddress: locality,
+        countryAddress: country
+      };
+    },
+    "#tabGoodToKnow > div > div > div.col-1-3.rightProperty > div.locationContact > span > span[itemprop*='streetAddress']",
+    "#tabGoodToKnow > div > div > div.col-1-3.rightProperty > div.locationContact > span > span[itemprop*='postalCode']",
+    "#tabGoodToKnow > div > div > div.col-1-3.rightProperty > div.locationContact > span > span[itemprop*='addressLocality']",
+    "#tabGoodToKnow > div > div > div.col-1-3.rightProperty > div.locationContact > span > span[itemprop*='addressCountry']"
+  );
+
+  return {
+    center: position,
+    address: address
+  };
 };
 
 exports.Castle = new Castle();

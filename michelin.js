@@ -31,19 +31,6 @@ Michelin.prototype.getRestaurantDetails = async function(name, page) {
           if (!stars || !stars.innerText.includes("MICHELIN :")) return null;
           else return stars.innerText.match(/\d/i)[0];
         }, "#node_poi-guide-wrapper > div.node_poi-distinction-section > ul > li > div.content-wrapper");
-
-        restaurant.location = await page.evaluate(
-          (selector1, selector2) => {
-            var street = !document.querySelector(selector1) ? document.querySelector(selector1).innerText : "none";
-            var postal = !document.querySelector(selector2) ? document.querySelector(selector2).innerText : "none";
-            return {
-              street: document.querySelector(selector1).innerText,
-              postal: document.querySelector(selector2).innerText
-            }
-          },
-          "#map-location > div.field.field--name-field-address.field--type-addressfield.field--label-hidden > div > div > div.street-block > div",
-          "#map-location > div.field.field--name-field-address.field--type-addressfield.field--label-hidden > div > div > div.addressfield-container-inline.locality-block.country-FR"
-        );
       }
     }
     return restaurant;
