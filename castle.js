@@ -1,4 +1,4 @@
-const url = "https://www.relaischateaux.com/us/destinations/";
+const url = "https://www.relaischateaux.com/fr/destinations/";
 const puppeteer = require("puppeteer");
 const firebase = require("firebase");
 const michelin = require("./michelin").Michelin;
@@ -51,9 +51,10 @@ Castle.prototype.getHotels = function(destination, db) {
         const hotels_links = await pageLinks.evaluate(selector => {
           const hotel_quick_view_list = document.querySelectorAll(selector);
           var hotel_quick_view = [...hotel_quick_view_list];
-          hotel_quick_view = hotel_quick_view.filter(hotel => hotel.innerText.includes("Hotel + Resta"));
+          hotel_quick_view = hotel_quick_view.filter(hotel => hotel.innerText.match(/h(o|ô)tel \+ resta/i));
           return hotel_quick_view.map(element => element.querySelector("h3 > a").href);
         }, "#destinationResults > div[class*=hotelQuickView]");
+
 
         console.log("[#] Done getting links\n");
 
@@ -166,6 +167,7 @@ Castle.prototype.getHotels = function(destination, db) {
   }
 };
 
+
 let saveToFirebase = (hotel, db, destination) => {
   let hotelsRef = db.ref("/hotels/" + destination);
   hotelsRef
@@ -183,6 +185,36 @@ let saveToFirebase = (hotel, db, destination) => {
     });
 };
 
+let updateDispoHotelFirebase = async (first, second, ref, id) => {
+  var query = ref.orderByChild('id').equalTo(id);
+  query.once("child_added", function(snapshot) {
+    snapshot.ref.update({disponibilites: {first: first, second:second}})
+    console.log(`${id} dispo updated!`);
+  });
+}
+
+Castle.prototype.updateDispoElement = (destination, db) => {
+  db.goOnline();
+    var ref = db.ref(`/hotels/${destination}`);
+    
+    var hotel_array = [];
+  ref.on(
+    "value", async function (snapshotHotel) {
+      snapshotHotel.forEach(snaphost => {
+        var obj = snaphost.val();
+        
+        hotel_array.push({
+          link: obj.link,
+          id: obj.id
+        })
+      }
+      )
+      await getHotelDispo(hotel_array, ref);
+      db.goOffline();
+    }
+  )
+}
+
 let ID = async (name, destination) => {
   const id = crypto
     .createHmac("sha256", destination)
@@ -190,6 +222,68 @@ let ID = async (name, destination) => {
     .digest("hex");
   return id.substr(2, 9);
 };
+
+let getHotelDispo = async (hotels, ref) => {
+  const browser = await puppeteer.launch({
+    headless: true,
+    timeout: 0,
+    executablePath: process.env.CHROME_BIN || undefined,
+    args: ["--no-sandbox", "--headless", "--disable-gpu"]
+  });
+  const page = await browser.newPage();
+
+  for (let i = 0; i < hotels.length; i++) {
+    await page.goto(hotels[i].link, { waitUntil: "networkidle2", timeout: 0 });
+    await page.waitForSelector(".displayAvailability > div.startEndDatepickerWrapper > [id^=dp] > div > div.ui-datepicker-group.ui-datepicker-group-first > table ");
+    await page.waitFor(4000);
+
+    let secondMonth = await page.evaluate((select, selectMonth) => {
+      var secondMonthBodyTable = document.querySelector(select).children[1];
+
+      var targetTDs_list = secondMonthBodyTable.querySelectorAll('tr > td');
+      var targetTDs = [...targetTDs_list];
+      monthDetails = targetTDs.reduce((res, element) => {
+        if(element.querySelector('a')!=null){
+          res.push(element.getAttribute('data-day') + " - " + element.querySelector('a').getAttribute('data-price') + " - " + element.classList.contains('available'));
+        }
+        return res;
+      }, []);
+
+      var monthName = document.querySelector(selectMonth).textContent;
+      return {
+          name: monthName,
+          body: monthDetails
+        }
+    },".displayAvailability > div.startEndDatepickerWrapper > [id^=dp] > div > div.ui-datepicker-group.ui-datepicker-group-last > table",
+      "div > div.ui-datepicker-group.ui-datepicker-group-last > div > div"
+    )
+
+    let firstMonth = await page.evaluate((select, selectMonth) => {
+      var firstMonthBodyTable = document.querySelector(select).children[1];
+      var targetTDs_list = firstMonthBodyTable.querySelectorAll('tr > td');
+      var targetTDs = [...targetTDs_list];
+
+      monthDetails = targetTDs.reduce((res, element) => {
+        if(element.querySelector('a')!=null){
+          res.push(element.getAttribute('data-day') + " - " + element.querySelector('a').getAttribute('data-price') + " - " + element.classList.contains('available'));
+        }
+        return res;
+      }, []);
+
+      var firstMonthName = document.querySelector(selectMonth).textContent;
+
+      return {
+          name: firstMonthName,
+          body: monthDetails
+        }
+    }, ".displayAvailability > div.startEndDatepickerWrapper > [id^=dp] > div > div.ui-datepicker-group.ui-datepicker-group-first > table",
+      "div > div.ui-datepicker-group.ui-datepicker-group-first > div > div")
+
+
+    
+    updateDispoHotelFirebase(firstMonth, secondMonth, ref, hotels[i].id);
+  }
+}
 
 let getHotelLocation = async page => {
   await page.waitForSelector("#tabGoodToKnow");
