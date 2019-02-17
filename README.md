@@ -19,7 +19,7 @@ This project is a micro-service of _Castle_ project including [castle-client](ht
 
 ### <a id="docker"></a> Docker Usage
 
-The project is executed from Docker in order to use the programmed execution correctly.
+The project is executed from Docker in order to use the schedules execution correctly.
 
 First, build the Dockerfile and pull MongoDB container:
 
