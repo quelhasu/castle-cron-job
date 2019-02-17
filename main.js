@@ -41,10 +41,10 @@ agend.define('selection france', (job, done) => {
 
 (async function() {
   await agenda.start();
-  // await agenda.every('7 days', 'update database france');
-  // await agenda.on('success:update database france', job => {
-  //   console.log(`Update france DONE`);
-  // });
+  await agenda.every('7 days', 'update database france');
+  await agenda.on('success:update database france', job => {
+    console.log(`Update france DONE`);
+  });
   await agenda.every('7 days', 'selection france');
 })();
 
