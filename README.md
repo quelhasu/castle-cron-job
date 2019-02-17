@@ -24,7 +24,7 @@ The project is executed from Docker in order to use the schedules execution corr
 First, build the Dockerfile and pull MongoDB container:
 
 ```bash
-$ docker build -t castle-api .
+$ docker build -t castle-cron-job .
 $ docker pull mongo
 ```
 
