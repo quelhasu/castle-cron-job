@@ -20,6 +20,7 @@
     "jsdom": "^13.1.0",
     "mongodb": "^3.1.13",
     "puppeteer": "^1.11.0",
-    "seedrandom": "^2.4.4"
+    "seedrandom": "^2.4.4",
+    "slack-notify": "^0.1.7"
   }
 }

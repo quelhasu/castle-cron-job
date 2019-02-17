@@ -10,22 +10,6 @@ Castle.prototype.hello = function() {
   console.log("hello");
 };
 
-// Castle.prototype.getHotels2 = function(destination) {
-//   try {
-//     destination = destination.toLowerCase();
-//     return axios.get(url + destination).then(response => {
-//       const data = response.data;
-//       var preJson = data.match(/var oMapOptionsdestination.+Map = (.*?)<\/script>/ms)[1];
-//       var map = eval("(" + preJson + ")");
-//       var markers = map.markers;
-//       var json_string = JSON.stringify(markers);
-//       return JSON.parse(json_string);
-//     });
-//   } catch (error) {
-//     console.log(error);
-//   }
-// };
-
 Castle.prototype.getHotels = function(destination, db) {
   try {
     destination = destination.toLowerCase();
